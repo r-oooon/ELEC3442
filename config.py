@@ -11,6 +11,7 @@ import os
 GPIO_ENABLED = True
 SENSEHAT_ENABLED = True
 CAMERA_ENABLED = True
+SIMULATION_ENABLED = True          # Launch the pygame visual simulation window
 
 # ──────────────────────────────────────────────
 # GPIO Pin Assignments

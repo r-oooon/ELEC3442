@@ -16,6 +16,7 @@ import camera_handler
 from button_handler import setup_gpio, cleanup_gpio, start_button_threads
 from joystick_handler import start_joystick_thread
 from fsm import start_fsm_thread
+from config import SIMULATION_ENABLED
 
 
 def main():
@@ -56,6 +57,17 @@ def main():
 
     fsm_thread = start_fsm_thread(shared_state, stop_event)
     threads.append(fsm_thread)
+
+    # ── Optional: pygame simulation window ──
+    if SIMULATION_ENABLED:
+        from simulation import start_simulation, run_simulation
+        # Pygame strongly prefers to run on the main thread on some platforms.
+        # We'll launch it on a thread here; if that causes issues on macOS,
+        # swap to running run_simulation() on main and move the wait-loop
+        # into a thread instead.
+        sim_thread = start_simulation(shared_state, stop_event)
+        threads.append(sim_thread)
+        print("[main] Simulation window launched.")
 
     print(f"[main] {len(threads)} threads running. Press Ctrl-C to stop.\n")
 
