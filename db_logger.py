@@ -145,3 +145,13 @@ def fetch_all_phases():
         cur = conn.cursor()
         cur.execute("SELECT * FROM phase_log ORDER BY start_time")
         return [dict(row) for row in cur.fetchall()]
+    
+
+def fetch_latest_phase():
+    
+    with _db_lock, sqlite3.connect(DB_PATH) as conn:
+        conn.row_factory = sqlite3.Row
+        cur = conn.cursor()
+        cur.execute("SELECT phase FROM phase_log ORDER BY id DESC LIMIT 1")
+        row = cur.fetchone()
+        return dict(row) if row else {"phase": "UNKNOWN"}
