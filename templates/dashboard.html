@@ -118,6 +118,12 @@
       overflow: hidden;
     }
 
+    .chart-container {
+      position: relative;
+      height: 300px;
+      width: 100%;
+    }
+
     canvas#hourlyChart {
       max-height: 100% !important;
       width: 100% !important;
@@ -164,6 +170,24 @@
       API endpoints: <code>/api/stats</code>, <code>/api/realtime_stats</code>
     </div>
   </div>
+
+  <div class="grid" style="margin-top: 24px; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));">
+
+  <div class="card chart-card">
+    <h2>Wait Time Distribution (Seconds)</h2>
+    <div class="chart-container">
+      <canvas id="waitHistogram"></canvas>
+    </div>
+  </div>
+
+  <div class="card chart-card">
+    <h2>Average Phase Duration (Seconds)</h2>
+    <div class="chart-container">
+      <canvas id="phaseAvgChart"></canvas>
+    </div>
+  </div>
+
+</div>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="{{ url_for('static', filename='dashboard.js') }}"></script>
