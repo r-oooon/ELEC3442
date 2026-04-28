@@ -27,7 +27,7 @@ def get_stats():
     return jsonify({
         "total_presses": len(presses),
         "latest_state": phases[-1]['phase'] if phases else "UNKNOWN",
-        "hourly_data": transform_to_hourly(presses)
+        "hourly_data": transform_to_hourly(presses),
         "raw_presses": presses,
         "raw_phases": phases
     })
