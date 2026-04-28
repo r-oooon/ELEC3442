@@ -53,13 +53,10 @@ async function loadStats() {
     statusBadge.textContent = '● Live';
     statusBadge.style.backgroundColor = '#047857';
 
-    const counts = stats.hourly_data?.map(point => point.count ?? 0) ?? Array(24).fill(0);
-    if (window.hourlyChart) {
-      window.hourlyChart.data.datasets[0].data = counts;
-      window.hourlyChart.update();
-
-
-      const stats = await statsRes.json();
+    // const counts = stats.hourly_data?.map(point => point.count ?? 0) ?? Array(24).fill(0);
+    // if (window.hourlyChart) {
+    //   window.hourlyChart.data.datasets[0].data = counts;
+    //   window.hourlyChart.update();
 
     // 1. Update existing Hourly Chart
     updateChart(window.hourlyChart, stats.hourly_data.map(d => d.count));
@@ -71,14 +68,20 @@ async function loadStats() {
     // 3. Client-side Analytics: Phase Durations
     const phaseData = calculatePhaseAverages(stats.raw_phases || []);
     updateChart(window.phaseChart, phaseData.data, phaseData.labels);
-    }
+    renderRecentActivity(realtime.recent_activity ?? []);
+  } catch (error) {
+    statusBadge.textContent = '● Offline (Reconnecting...)';
+    statusBadge.style.backgroundColor = '#991b1b';
+    console.error('Dashboard load error:', error);
+  }
+}
 
     function updateChart(chart, newData, newLabels = null) {
     if (!chart) return;
     chart.data.datasets[0].data = newData;
     if (newLabels) chart.data.labels = newLabels;
     chart.update('none'); // 'none' prevents animation frame lag during rapid updates
-}
+  }
 
 // Initialize charts on DOMContentLoaded...
 function setupAnalyticsCharts() {
@@ -131,14 +134,6 @@ function setupAnalyticsCharts() {
       plugins: { legend: { display: false } }
     }
   });
-}
-
-    renderRecentActivity(realtime.recent_activity ?? []);
-  } catch (error) {
-    statusBadge.textContent = '● Offline (Reconnecting...)';
-    statusBadge.style.backgroundColor = '#991b1b';
-    console.error('Dashboard load error:', error);
-  }
 }
 
 function setupDashboardChart() {
