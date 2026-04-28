@@ -18,8 +18,11 @@ _db_lock = threading.Lock()
 # Schema initialisation
 # ──────────────────────────────────────────────
 def init_db():
-    """Create tables if they don't already exist."""
+    """Create tables and enable WAL mode for concurrent access."""
     with _db_lock, sqlite3.connect(DB_PATH) as conn:
+        conn.execute("PRAGMA journal_mode=WAL")
+        conn.execute("PRAGMA synchronous=NORMAL")
+
         cur = conn.cursor()
         cur.execute("""
             CREATE TABLE IF NOT EXISTS button_presses (
@@ -145,3 +148,13 @@ def fetch_all_phases():
         cur = conn.cursor()
         cur.execute("SELECT * FROM phase_log ORDER BY start_time")
         return [dict(row) for row in cur.fetchall()]
+    
+
+def fetch_latest_phase():
+    
+    with _db_lock, sqlite3.connect(DB_PATH) as conn:
+        conn.row_factory = sqlite3.Row
+        cur = conn.cursor()
+        cur.execute("SELECT phase FROM phase_log ORDER BY id DESC LIMIT 1")
+        row = cur.fetchone()
+        return dict(row) if row else {"phase": "UNKNOWN"}

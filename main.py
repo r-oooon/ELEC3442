@@ -8,6 +8,7 @@ import threading
 import time
 import signal
 import sys
+from dashboard_server import app
 
 # Project modules
 import db_logger
@@ -17,6 +18,16 @@ from button_handler import setup_gpio, cleanup_gpio, start_button_threads
 from joystick_handler import start_joystick_thread
 from fsm import start_fsm_thread
 from config import SIMULATION_ENABLED
+
+
+def start_dashboard_thread(stop_event, shared_state):
+    def run():
+        app.config['LIVE_STATE'] = shared_state
+        app.run(host='0.0.0.0', port=5000, debug=False, use_reloader=False)
+
+    t = threading.Thread(target=run, name="Dashboard", daemon=True)
+    t.start()
+    return t
 
 
 def main():
@@ -37,6 +48,11 @@ def main():
 
     # Global stop event for graceful shutdown
     stop_event = threading.Event()
+    threads = []
+
+    dash_thread = start_dashboard_thread(stop_event, shared_state)
+    threads.append(dash_thread)
+    print("[main] Dashboard server started at http://localhost:5000")
 
     # ── Initialisation ──
     print("\n[main] Initialising subsystems...")
@@ -46,8 +62,7 @@ def main():
     setup_gpio()
 
     # ── Launch threads ──
-    print("\n[main] Starting threads...")
-    threads = []
+    print("[main] Starting threads...")
 
     btn_threads = start_button_threads(shared_state, stop_event)
     threads.extend(btn_threads)
@@ -80,10 +95,10 @@ def main():
     finally:
         # Signal all threads to stop
         stop_event.set()
-
-        # Give threads a moment to finish their current iteration
         time.sleep(1)
 
+        if hasattr(db_logger, 'close_db'):
+            db_logger.close_db()
         # Cleanup hardware
         display.clear_display()
         camera_handler.release_camera()
