@@ -18,60 +18,40 @@ def transform_to_hourly(presses):
 def index():
     return render_template('dashboard.html')
 
-# @app.route('/api/stats')
-# def get_stats():
-#
-#     presses = db_logger.fetch_all_button_presses()
-#     phases = db_logger.fetch_all_phases()
-#
-#
-#     return jsonify({
-#         "total_presses": len(presses),
-#         "latest_state": phases[-1]['phase'] if phases else "UNKNOWN",
-#         "hourly_data": transform_to_hourly(presses)
-#     })
 
 @app.route('/api/stats')
 def get_stats():
-    # Fetch data from SQLite
     presses = db_logger.fetch_all_button_presses()
     phases = db_logger.fetch_all_phases()
 
     return jsonify({
         "total_presses": len(presses),
         "latest_state": phases[-1]['phase'] if phases else "UNKNOWN",
-        "hourly_data": transform_to_hourly(presses),  # Legacy support
-        # NEW: Provide raw data for client-side processing
-        "raw_presses": presses,
-        "raw_phases": phases
+        "hourly_data": transform_to_hourly(presses)
     })
 
 
 @app.route('/api/realtime_stats')
 def realtime_stats():
-    try:
-        shared_state = current_app.config.get('LIVE_STATE')
-        current_phase = "UNKNOWN"
+    # 1. Try to get the live state from the shared_state dictionary
+    shared_state = current_app.config.get('LIVE_STATE')
 
-        if shared_state:
-            with shared_state['lock']:
-                current_phase = shared_state.get('current_state', 'UNKNOWN')
-        else:
-            # If main.py hasn't shared the state yet, try the DB
-            latest = db_logger.fetch_latest_phase()
-            current_phase = latest.get('phase', 'UNKNOWN') if latest else "INITIALIZING"
+    if shared_state:
+        with shared_state['lock']:
+            current_phase = shared_state.get('current_state', 'UNKNOWN')
+    else:
+        # Fallback to DB if thread hasn't fully started
+        latest = db_logger.fetch_latest_phase()
+        current_phase = latest.get('phase', 'UNKNOWN')
 
-        presses = db_logger.fetch_all_button_presses()
+    presses = db_logger.fetch_all_button_presses()
 
-        return jsonify({
-            "current_phase": current_phase,
-            "total_pedestrians": len(presses),
-            "recent_activity": [p['timestamp'] for p in presses[-10:]]
-        })
-    except Exception as e:
-        # This will print the exact error to your terminal if the API fails
-        print(f"API Error: {e}")
-        return jsonify({"error": "Internal Server Error"}), 500
+    return jsonify({
+        "current_phase": current_phase,  # This is now truly live
+        "total_pedestrians": len(presses),
+        "recent_activity": [p['timestamp'] for p in presses[-10:]]
+    })
+
 
 @app.after_request
 def add_header(response):
@@ -80,7 +60,6 @@ def add_header(response):
     response.headers["Pragma"] = "no-cache"
     response.headers["Expires"] = "0"
     return response
-
 
 
 if __name__ == '__main__':
