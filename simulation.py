@@ -161,6 +161,155 @@ class Pedestrian:
     def finished(self):
         return self.y > self.target_y if self.from_top else self.y < self.target_y
 
+def draw_scene(surface, state_name, cars, peds, font_big, font_sm):
+    """Render the full scene for one frame."""
+
+    # ── Background / grass ──
+    surface.fill(COL_GRASS)
+
+    # ── Sidewalks ──
+    pygame.draw.rect(surface, COL_SIDEWALK,
+                     (0, ROAD_Y - SIDEWALK_H, WIN_W, SIDEWALK_H))
+    pygame.draw.rect(surface, COL_SIDEWALK,
+                     (0, ROAD_Y + ROAD_H, WIN_W, SIDEWALK_H))
+
+    # ── Road ──
+    pygame.draw.rect(surface, COL_ROAD, (0, ROAD_Y, WIN_W, ROAD_H))
+
+    # Centre dashed line
+    dash_len, gap = 30, 20
+    for dx in range(0, WIN_W, dash_len + gap):
+        pygame.draw.line(surface, COL_ROAD_LINE,
+                         (dx, ROAD_CENTRE), (dx + dash_len, ROAD_CENTRE), 2)
+
+    # ── Crosswalk stripes ──
+    y = ROAD_Y
+    while y + STRIPE_H <= ROAD_Y + ROAD_H:
+        pygame.draw.rect(surface, COL_CROSSWALK,
+                         (CROSS_X, y, CROSS_W, STRIPE_H))
+        y += STRIPE_H + STRIPE_GAP
+
+    # ── Cars ──
+    for c in cars:
+        c.draw(surface)
+
+    # ── Pedestrians ──
+    for p in peds:
+        p.draw(surface)
+
+    # ── Traffic light box ──
+    _draw_traffic_light(surface, state_name)
+
+    # ── Info panel ──
+    _draw_info_panel(surface, state_name, font_big, font_sm)
+
+
+def _draw_traffic_light(surface, state_name):
+    """Draw a 3-bulb traffic light for vehicles and a walk/stop indicator
+       for pedestrians."""
+    # Housing
+    housing = pygame.Rect(TL_X, TL_Y, 46, 120)
+    pygame.draw.rect(surface, (20, 20, 20), housing, border_radius=8)
+    pygame.draw.rect(surface, (80, 80, 80), housing, width=2, border_radius=8)
+    # Pole
+    pygame.draw.rect(surface, (80, 80, 80),
+                     (TL_X + 19, TL_Y + 120, 8, ROAD_Y - TL_Y - 120))
+
+    # Determine which bulbs are lit
+    r_on = state_name in ('VEHICLE_RED', 'PEDESTRIAN_CROSS', 'PEDESTRIAN_CLEARANCE')
+    a_on = state_name == 'VEHICLE_AMBER'
+    g_on = state_name == 'VEHICLE_GREEN'
+
+    cx = TL_X + 23
+    bulb_r = 14
+    for i, (colour_on, colour_off, is_on) in enumerate([
+        (COL_RED,   COL_OFF_LIGHT, r_on),
+        (COL_AMBER, COL_OFF_LIGHT, a_on),
+        (COL_GREEN, COL_OFF_LIGHT, g_on),
+    ]):
+        cy = TL_Y + 22 + i * 34
+        col = colour_on if is_on else colour_off
+        pygame.draw.circle(surface, col, (cx, cy), bulb_r)
+        # Glow effect when on
+        if is_on:
+            glow = pygame.Surface((bulb_r * 4, bulb_r * 4), pygame.SRCALPHA)
+            pygame.draw.circle(glow, (*col, 50),
+                               (bulb_r * 2, bulb_r * 2), bulb_r * 2)
+            surface.blit(glow, (cx - bulb_r * 2, cy - bulb_r * 2))
+
+    # Pedestrian signal (small box below)
+    ped_box = pygame.Rect(TL_X + 3, TL_Y + 125, 40, 30)
+    pygame.draw.rect(surface, (20, 20, 20), ped_box, border_radius=4)
+    if state_name in ('PEDESTRIAN_CROSS', 'PEDESTRIAN_CLEARANCE'):
+        # Walk — green figure
+        if state_name == 'PEDESTRIAN_CLEARANCE':
+            # Flashing effect
+            show = (pygame.time.get_ticks() // 500) % 2 == 0
+        else:
+            show = True
+        if show:
+            pcx, pcy = TL_X + 23, TL_Y + 140
+            pygame.draw.circle(surface, COL_GREEN, (pcx, pcy - 8), 4)
+            pygame.draw.line(surface, COL_GREEN, (pcx, pcy - 4), (pcx, pcy + 2), 2)
+            pygame.draw.line(surface, COL_GREEN, (pcx, pcy + 2), (pcx - 5, pcy + 8), 2)
+            pygame.draw.line(surface, COL_GREEN, (pcx, pcy + 2), (pcx + 5, pcy + 8), 2)
+    else:
+        # Don't walk — red hand
+        pcx, pcy = TL_X + 23, TL_Y + 140
+        pygame.draw.circle(surface, COL_RED, (pcx, pcy - 4), 7)
+        # Simple hand/stop symbol
+        pygame.draw.line(surface, (180, 40, 40), (pcx - 3, pcy - 7),
+                         (pcx + 3, pcy - 1), 2)
+        pygame.draw.line(surface, (180, 40, 40), (pcx + 3, pcy - 7),
+                         (pcx - 3, pcy - 1), 2)
+
+
+def _draw_info_panel(surface, state_name, font_big, font_sm):
+    """Overlay panel showing FSM state and instructions."""
+    # Dark panel at bottom
+    panel_h = 60
+    panel = pygame.Surface((WIN_W, panel_h), pygame.SRCALPHA)
+    panel.fill((*COL_PANEL, 210))
+    surface.blit(panel, (0, WIN_H - panel_h))
+
+    # State label
+    friendly = {
+        'STARTUP':               'Starting up…',
+        'VEHICLE_GREEN':         'VEHICLE GREEN — Cars go',
+        'VEHICLE_AMBER':         'VEHICLE AMBER — Caution',
+        'VEHICLE_RED':           'VEHICLE RED — Cars stop',
+        'PEDESTRIAN_CROSS':      'WALK — Pedestrians cross',
+        'PEDESTRIAN_CLEARANCE':  'CLEARANCE — Hurry up!',
+    }
+    label = friendly.get(state_name, state_name)
+    # Colour code the label
+    if 'GREEN' in state_name:
+        col = COL_GREEN
+    elif 'AMBER' in state_name:
+        col = COL_AMBER
+    elif 'RED' in state_name:
+        col = COL_RED
+    elif 'CROSS' in state_name:
+        col = COL_GREEN
+    elif 'CLEARANCE' in state_name:
+        col = COL_AMBER
+    else:
+        col = COL_TEXT
+
+    txt = font_big.render(label, True, col)
+    surface.blit(txt, (20, WIN_H - panel_h + 10))
+
+    # Instructions
+    hint = font_sm.render("Press SPACE = button press  |  Q / ESC = quit",
+                          True, (160, 160, 160))
+    surface.blit(hint, (20, WIN_H - panel_h + 38))
+
+    # Clock
+    t_str = time.strftime("%H:%M:%S")
+    clock_txt = font_sm.render(t_str, True, COL_TEXT)
+    surface.blit(clock_txt, (WIN_W - clock_txt.get_width() - 20,
+                             WIN_H - panel_h + 10))
+
 
 # ──────────────────────────────────────────────
 # Main simulation loop
@@ -226,3 +375,70 @@ def run_simulation(shared_state, stop_event):
         pygame.display.flip()
 
     pygame.quit()
+    stop_event.set()
+
+def start_simulation(shared_state, stop_event):
+    """Launch the simulation in a daemon thread (non-blocking)."""
+    t = threading.Thread(
+        target=run_simulation,
+        args=(shared_state, stop_event),
+        name="Simulation",
+        daemon=True,
+    )
+    t.start()
+    return t
+
+def _mock_fsm(shared_state, stop_event):
+    """Cycle through FSM states on a timer so the simulation can be
+    previewed without any hardware."""
+    from config import (MIN_GREEN_DURATION, AMBER_DURATION,
+                        PRE_CROSS_RED_DURATION, PEDESTRIAN_CROSS_DURATION,
+                        CLEARANCE_DURATION)
+
+    phases = [
+        ('VEHICLE_GREEN',         MIN_GREEN_DURATION),
+        ('VEHICLE_AMBER',         AMBER_DURATION),
+        ('VEHICLE_RED',           PRE_CROSS_RED_DURATION),
+        ('PEDESTRIAN_CROSS',      PEDESTRIAN_CROSS_DURATION),
+        ('PEDESTRIAN_CLEARANCE',  CLEARANCE_DURATION),
+    ]
+
+    while not stop_event.is_set():
+        for phase, duration in phases:
+            if stop_event.is_set():
+                return
+            with shared_state['lock']:
+                shared_state['current_state'] = phase
+            print(f"[mock-fsm] → {phase} ({duration}s)")
+            # Interruptible sleep
+            end = time.time() + duration
+            while time.time() < end and not stop_event.is_set():
+                time.sleep(0.1)
+
+
+if __name__ == '__main__':
+    print("Running simulation in standalone demo mode (mock FSM).")
+    print("Press SPACE to simulate a button press.  Q or ESC to quit.\n")
+
+    shared_state = {
+        'lock':           threading.Lock(),
+        'button_pressed': False,
+        'button_side':    None,
+        'press_time':     None,
+        'input_type':     None,
+        'current_state':  'VEHICLE_GREEN',
+    }
+    stop_event = threading.Event()
+
+    # Run mock FSM in a background thread
+    fsm_t = threading.Thread(target=_mock_fsm,
+                             args=(shared_state, stop_event),
+                             daemon=True)
+    fsm_t.start()
+
+    # Run simulation in the main thread (pygame prefers this)
+    try:
+        run_simulation(shared_state, stop_event)
+    except KeyboardInterrupt:
+        stop_event.set()
+    print("Bye!")
