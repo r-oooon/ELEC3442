@@ -18,18 +18,18 @@ def transform_to_hourly(presses):
 def index():
     return render_template('dashboard.html')
 
-@app.route('/api/stats')
-def get_stats():
-    
-    presses = db_logger.fetch_all_button_presses()
-    phases = db_logger.fetch_all_phases()
-    
-    
-    return jsonify({
-        "total_presses": len(presses),
-        "latest_state": phases[-1]['phase'] if phases else "UNKNOWN",
-        "hourly_data": transform_to_hourly(presses) 
-    })
+# @app.route('/api/stats')
+# def get_stats():
+#
+#     presses = db_logger.fetch_all_button_presses()
+#     phases = db_logger.fetch_all_phases()
+#
+#
+#     return jsonify({
+#         "total_presses": len(presses),
+#         "latest_state": phases[-1]['phase'] if phases else "UNKNOWN",
+#         "hourly_data": transform_to_hourly(presses)
+#     })
 
 @app.route('/api/realtime_stats')
 def realtime_stats():
