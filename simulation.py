@@ -381,11 +381,11 @@ def run_simulation(shared_state, stop_event):
         if pygame.time.get_ticks() % 500 < 17:  # every ~100ms
             # Convert Pygame surface to string buffer
             buffer = io.BytesIO()
-            pygame.image.save(screen, buffer, 'JPEG', quality=70)
-            frame_bytes = buffer.getvalue()
-
-            with shared_state['lock']:
-                shared_state['sim_frame'] = frame_bytes
+            pygame.image.save(screen, 'temp/pygame.png')
+            # frame_bytes = buffer.getvalue()
+            #
+            # with shared_state['lock']:
+            #     shared_state['sim_frame'] = frame_bytes
 
         clock.tick(FPS)
 

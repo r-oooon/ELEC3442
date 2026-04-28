@@ -77,20 +77,29 @@ def camera_frame():
     except Exception:
         # Fallback to dummy image
         try:
-            shared_state = current_app.config.get('LIVE_STATE')
-            if shared_state:
-                with shared_state.get('lock', threading.Lock()):
-                    sim_frame = shared_state.get('sim_frame')
-                if sim_frame is not None:
-                    frame_bytes = sim_frame
-                else:
-                    raise ValueError("No frame available")
+            dummy_path = os.path.join(os.path.dirname(__file__), 'temp/pygame.png')
+            with open(dummy_path, 'rb') as f:
+                img = f.read()
             response = current_app.response_class(
-                frame_bytes,
+                img,
                 mimetype='image/jpeg'
             )
             response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
             return response
+            # shared_state = current_app.config.get('LIVE_STATE')
+            # if shared_state:
+            #     with shared_state.get('lock', threading.Lock()):
+            #         sim_frame = shared_state.get('sim_frame')
+            #     if sim_frame is not None:
+            #         frame_bytes = sim_frame
+            #     else:
+            #         raise ValueError("No frame available")
+            # response = current_app.response_class(
+            #     frame_bytes,
+            #     mimetype='image/jpeg'
+            # )
+            # response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+            # return response
         except:
             dummy_path = os.path.join(os.path.dirname(__file__), 'no_camera.png')
             try:
