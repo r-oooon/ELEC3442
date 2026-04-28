@@ -60,5 +60,21 @@ def add_header(response):
     response.headers["Expires"] = "0"
     return response
 
+
+@app.route('/api/stats')
+def get_stats():
+    # Fetch data from SQLite
+    presses = db_logger.fetch_all_button_presses()
+    phases = db_logger.fetch_all_phases()
+
+    return jsonify({
+        "total_presses": len(presses),
+        "latest_state": phases[-1]['phase'] if phases else "UNKNOWN",
+        "hourly_data": transform_to_hourly(presses),  # Legacy support
+        # NEW: Provide raw data for client-side processing
+        "raw_presses": presses,
+        "raw_phases": phases
+    })
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
