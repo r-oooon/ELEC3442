@@ -20,8 +20,9 @@ from fsm import start_fsm_thread
 from config import SIMULATION_ENABLED
 
 
-def start_dashboard_thread(stop_event):
+def start_dashboard_thread(stop_event, shared_state):
     def run():
+        app.config['LIVE_STATE'] = shared_state
         app.run(host='0.0.0.0', port=5000, debug=False, use_reloader=False)
 
     t = threading.Thread(target=run, name="Dashboard", daemon=True)
@@ -49,7 +50,7 @@ def main():
     stop_event = threading.Event()
     threads = []
 
-    dash_thread = start_dashboard_thread(stop_event)
+    dash_thread = start_dashboard_thread(stop_event, shared_state)
     threads.append(dash_thread)
     print("[main] Dashboard server started at http://localhost:5000")
 
