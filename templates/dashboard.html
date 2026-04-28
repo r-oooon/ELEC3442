@@ -124,6 +124,11 @@
       width: 100%;
     }
 
+    #cameraFeed {
+      opacity: 0.9;
+      transition: opacity 0.3s;
+    }
+
     canvas#hourlyChart {
       max-height: 100% !important;
       width: 100% !important;
@@ -139,6 +144,14 @@
       </div>
       <div class="badge" id="statusBadge">Connecting…</div>
     </header>
+
+    <div class="card" style="margin-bottom: 20px;">
+      <h2>Live Camera Feed</h2>
+      <div style="text-align: center; background: #000; border-radius: 12px; padding: 8px;">
+        <img id="cameraFeed" src="" alt="Connecting camera…"
+           style="max-width: 100%; height: auto; max-height: 360px; border-radius: 8px;">
+      </div>
+  </div>
 
     <div class="grid">
       <section class="card">
