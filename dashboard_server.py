@@ -1,5 +1,7 @@
 from flask import Flask, jsonify, render_template, current_app
 import db_logger
+import camera_handler
+import os
 
 app = Flask(__name__)
 
@@ -59,6 +61,32 @@ def realtime_stats():
         print(f"API Error: {e}")
         return jsonify({"error": "Internal Server Error"}), 500
 
+@app.route('/api/camera_frame')
+def camera_frame():
+    try:
+        frame_bytes = camera_handler.detect_presence()
+        if frame_bytes is None:
+            raise ValueError("No camera frame")
+        response = current_app.response_class(
+            frame_bytes,
+            mimetype='image/jpeg'
+        )
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        return response
+    except Exception:
+        # Fallback to dummy image
+        dummy_path = os.path.join(os.path.dirname(__file__), 'no_camera.png')
+        try:
+            with open(dummy_path, 'rb') as f:
+                img = f.read()
+            response = current_app.response_class(
+                img,
+                mimetype='image/jpeg'
+            )
+            response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+            return response
+        except FileNotFoundError:
+            return "Camera not available and dummy image not found", 404
 
 @app.after_request
 def add_header(response):

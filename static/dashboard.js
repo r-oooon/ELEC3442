@@ -199,9 +199,30 @@ function calculatePhaseAverages(phases) {
     return { labels, data: averages };
 }
 
+function startCameraFeed() {
+  const img = document.getElementById('cameraFeed');
+  if (!img) return;
+
+  function refresh() {
+    // Cache-busting to avoid browser caching
+    img.src = '/api/camera_frame?t=' + Date.now();
+  }
+
+  // Handle network / error states
+  img.onerror = function() {
+    img.alt = 'Camera feed unavailable';
+    // Optionally set a static fallback src directly
+    // img.src = 'no_camera.jpg';   // Uncomment if you prefer a permanent fallback
+  };
+
+  refresh();
+  setInterval(refresh, 500); // 2 frames per second
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   setupDashboardChart();
   setupAnalyticsCharts();
   loadStats();
+  startCameraFeed();
   setInterval(loadStats, 3000);
 });
