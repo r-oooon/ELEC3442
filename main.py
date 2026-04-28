@@ -94,10 +94,10 @@ def main():
     finally:
         # Signal all threads to stop
         stop_event.set()
-
-        # Give threads a moment to finish their current iteration
         time.sleep(1)
 
+        if hasattr(db_logger, 'close_db'):
+            db_logger.close_db()
         # Cleanup hardware
         display.clear_display()
         camera_handler.release_camera()

@@ -44,5 +44,13 @@ def realtime_stats():
         "recent_activity": [p['timestamp'] for p in presses[-10:]]
     })
 
+@app.after_request
+def add_header(response):
+    """Disable browser caching for all API responses."""
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)

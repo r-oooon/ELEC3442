@@ -111,8 +111,16 @@
       margin-top: 8px;
       font-size: 0.92rem;
     }
+    /* Update these styles in dashboard.html */
     .chart-card {
-      min-height: 420px;
+      height: 400px; /* Force a fixed height to stop the expansion loop */
+      position: relative; /* Necessary for Chart.js responsive mode */
+      overflow: hidden;
+    }
+
+    canvas#hourlyChart {
+      max-height: 100% !important;
+      width: 100% !important;
     }
   </style>
 </head>

@@ -18,8 +18,11 @@ _db_lock = threading.Lock()
 # Schema initialisation
 # ──────────────────────────────────────────────
 def init_db():
-    """Create tables if they don't already exist."""
+    """Create tables and enable WAL mode for concurrent access."""
     with _db_lock, sqlite3.connect(DB_PATH) as conn:
+        conn.execute("PRAGMA journal_mode=WAL")
+        conn.execute("PRAGMA synchronous=NORMAL")
+
         cur = conn.cursor()
         cur.execute("""
             CREATE TABLE IF NOT EXISTS button_presses (

@@ -1,24 +1,33 @@
+/**
+ * dashboard.js — Logic for the Smart Pedestrian Crossing Dashboard.
+ * Optimized for real-time updates and memory efficiency.
+ */
+
 function renderPhase(phase) {
   const currentPhase = document.getElementById('currentPhase');
   const phaseLabel = document.getElementById('phaseLabel');
   const normalized = phase || 'UNKNOWN';
-  currentPhase.textContent = normalized;
+  
+  // Clean up the display text (e.g., VEHICLE_GREEN -> VEHICLE GREEN)
+  currentPhase.textContent = normalized.replace(/_/g, ' ');
   phaseLabel.textContent = normalized;
+  
+  // Update the CSS class for the status pill
   phaseLabel.className = `status-pill state-${normalized}`;
 }
 
 function renderRecentActivity(timestamps) {
   const recentActivity = document.getElementById('recentActivity');
   recentActivity.innerHTML = '';
-  if (!timestamps.length) {
+  if (!timestamps || !timestamps.length) {
     recentActivity.innerHTML = '<li class="list-item">No recent activity.</li>';
     return;
   }
-  timestamps.slice().reverse().forEach(ts => {
+  timestamps.slice(-10).reverse().forEach(ts => {
     const date = new Date(ts * 1000);
     const item = document.createElement('li');
     item.className = 'list-item';
-    item.innerHTML = `<span>Button press recorded</span><time>${date.toLocaleString()}</time>`;
+    item.innerHTML = `<span>Button press recorded</span><time>${date.toLocaleTimeString()}</time>`;
     recentActivity.appendChild(item);
   });
 }
@@ -41,7 +50,7 @@ async function loadStats() {
 
     renderPhase(realtime.current_phase || stats.latest_state || 'UNKNOWN');
     totalPresses.textContent = stats.total_presses ?? 0;
-    statusBadge.textContent = 'Live';
+    statusBadge.textContent = '● Live';
     statusBadge.style.backgroundColor = '#047857';
 
     const counts = stats.hourly_data?.map(point => point.count ?? 0) ?? Array(24).fill(0);
@@ -52,7 +61,7 @@ async function loadStats() {
 
     renderRecentActivity(realtime.recent_activity ?? []);
   } catch (error) {
-    statusBadge.textContent = 'Offline';
+    statusBadge.textContent = '● Offline (Reconnecting...)';
     statusBadge.style.backgroundColor = '#991b1b';
     console.error('Dashboard load error:', error);
   }
@@ -77,7 +86,11 @@ function setupDashboardChart() {
       maintainAspectRatio: false,
       scales: {
         x: { grid: { display: false }, ticks: { color: '#d1d5db' } },
-        y: { beginAtZero: true, ticks: { color: '#d1d5db' }, grid: { color: 'rgba(255,255,255,0.08)' } }
+        y: { 
+            beginAtZero: true, 
+            ticks: { color: '#d1d5db', stepSize: 1 }, 
+            grid: { color: 'rgba(255,255,255,0.08)' } 
+        }
       },
       plugins: {
         legend: { display: false },
@@ -90,5 +103,5 @@ function setupDashboardChart() {
 document.addEventListener('DOMContentLoaded', () => {
   setupDashboardChart();
   loadStats();
-  setInterval(loadStats, 5000);
+  setInterval(loadStats, 3000);
 });
