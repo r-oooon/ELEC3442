@@ -154,7 +154,7 @@ class Pedestrian:
         pygame.draw.line(surface, self.colour, (cx, cy - 6), (cx - 4, cy + 2), 3)
         pygame.draw.line(surface, self.colour, (cx, cy - 6), (cx + 4, cy + 2), 3)
         # Static arms
-        arm_y = cy - 6
+        arm_y = cy - 30
         pygame.draw.line(surface, self.colour, (cx, arm_y), (cx - 7, arm_y + 6), 2)
         pygame.draw.line(surface, self.colour, (cx, arm_y), (cx + 7, arm_y + 6), 2)
 
