@@ -6,6 +6,7 @@ Updated with queuing logic, static animations, and improved crossing behavior.
 
 import sys
 import os
+import io
 import time
 import math
 import random
@@ -326,6 +327,9 @@ def run_simulation(shared_state, stop_event):
     cars, peds = [], []
     car_spawn_timer, ped_spawn_timer = 0, 0
 
+    with shared_state['lock']:
+        shared_state['sim_frame'] = None
+
     while not stop_event.is_set():
         dt = clock.tick(FPS)
         for event in pygame.event.get():
@@ -373,6 +377,17 @@ def run_simulation(shared_state, stop_event):
         from simulation import draw_scene
         draw_scene(screen, state_name, cars, peds, font_big, font_sm)
         pygame.display.flip()
+
+        if pygame.time.get_ticks() % 500 < 17:  # every ~100ms
+            # Convert Pygame surface to string buffer
+            buffer = io.BytesIO()
+            pygame.image.save(screen, buffer, 'JPEG', quality=70)
+            frame_bytes = buffer.getvalue()
+
+            with shared_state['lock']:
+                shared_state['sim_frame'] = frame_bytes
+
+        clock.tick(FPS)
 
     pygame.quit()
     stop_event.set()

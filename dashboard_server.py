@@ -2,6 +2,7 @@ from flask import Flask, jsonify, render_template, current_app
 import db_logger
 import camera_handler
 import os
+import threading
 
 app = Flask(__name__)
 
@@ -75,18 +76,34 @@ def camera_frame():
         return response
     except Exception:
         # Fallback to dummy image
-        dummy_path = os.path.join(os.path.dirname(__file__), 'no_camera.png')
         try:
-            with open(dummy_path, 'rb') as f:
-                img = f.read()
+            shared_state = current_app.config.get('LIVE_STATE')
+            if shared_state:
+                with shared_state.get('lock', threading.Lock()):
+                    sim_frame = shared_state.get('sim_frame')
+                if sim_frame is not None:
+                    frame_bytes = sim_frame
+                else:
+                    raise ValueError("No frame available")
             response = current_app.response_class(
-                img,
+                frame_bytes,
                 mimetype='image/jpeg'
             )
             response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
             return response
-        except FileNotFoundError:
-            return "Camera not available and dummy image not found", 404
+        except:
+            dummy_path = os.path.join(os.path.dirname(__file__), 'no_camera.png')
+            try:
+                with open(dummy_path, 'rb') as f:
+                    img = f.read()
+                response = current_app.response_class(
+                    img,
+                    mimetype='image/jpeg'
+                )
+                response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+                return response
+            except FileNotFoundError:
+                return "Camera not available and dummy image not found", 404
 
 @app.after_request
 def add_header(response):
