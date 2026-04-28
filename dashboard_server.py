@@ -46,26 +46,32 @@ def get_stats():
         "raw_phases": phases
     })
 
+
 @app.route('/api/realtime_stats')
 def realtime_stats():
-    # 1. Try to get the live state from the shared_state dictionary
-    shared_state = current_app.config.get('LIVE_STATE')
+    try:
+        shared_state = current_app.config.get('LIVE_STATE')
+        current_phase = "UNKNOWN"
 
-    if shared_state:
-        with shared_state['lock']:
-            current_phase = shared_state.get('current_state', 'UNKNOWN')
-    else:
-        # Fallback to DB if thread hasn't fully started
-        latest = db_logger.fetch_latest_phase()
-        current_phase = latest.get('phase', 'UNKNOWN')
+        if shared_state:
+            with shared_state['lock']:
+                current_phase = shared_state.get('current_state', 'UNKNOWN')
+        else:
+            # If main.py hasn't shared the state yet, try the DB
+            latest = db_logger.fetch_latest_phase()
+            current_phase = latest.get('phase', 'UNKNOWN') if latest else "INITIALIZING"
 
-    presses = db_logger.fetch_all_button_presses()
+        presses = db_logger.fetch_all_button_presses()
 
-    return jsonify({
-        "current_phase": current_phase,  # This is now truly live
-        "total_pedestrians": len(presses),
-        "recent_activity": [p['timestamp'] for p in presses[-10:]]
-    })
+        return jsonify({
+            "current_phase": current_phase,
+            "total_pedestrians": len(presses),
+            "recent_activity": [p['timestamp'] for p in presses[-10:]]
+        })
+    except Exception as e:
+        # This will print the exact error to your terminal if the API fails
+        print(f"API Error: {e}")
+        return jsonify({"error": "Internal Server Error"}), 500
 
 @app.after_request
 def add_header(response):
