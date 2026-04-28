@@ -65,7 +65,7 @@ def realtime_stats():
 def camera_frame():
     try:
         frame_bytes = camera_handler.detect_presence()
-        if frame_bytes is None:
+        if frame_bytes[1] is None:
             raise ValueError("No camera frame")
         response = current_app.response_class(
             frame_bytes,
